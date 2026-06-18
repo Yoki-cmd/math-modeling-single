@@ -4,6 +4,8 @@
 [![MATLAB](https://img.shields.io/badge/MATLAB-MCP-orange)](https://www.mathworks.com/products/matlab.html)
 [![LaTeX](https://img.shields.io/badge/LaTeX-xelatex-green)](https://www.latex-project.org/)
 
+加企鹅群获得更多帮助：966216904
+
 > 给一道数学建模竞赛题，按国赛标准四阶段流程（策略 → 求解 → 写作 → 审查）端到端生成一篇完整论文。主会话顺序内联执行全部阶段，MATLAB MCP 跑真实数据、矢量流程图、自带国赛标准 LaTeX 模板，产出可直接编译的 LaTeX 论文。
 
 > **⚠️ 版本说明（LaTeX-only 分支）**：本目录是 `math-modeling-single` 的 **LaTeX-only 分支**，从同名的 **Typst 版本**派生而来。两者四阶段流程、求解逻辑与写作/审查规则完全一致，**唯一区别是论文编译后端**：
