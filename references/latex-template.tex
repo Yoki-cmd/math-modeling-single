@@ -1,0 +1,287 @@
+\documentclass[a4paper, 12pt]{article}
+
+% ===== 中文支持 =====
+\usepackage[UTF8]{ctex}
+
+% ===== 页面设置 =====
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=3cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ===== 数学环境 =====
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{bm}
+
+% ===== 表格 =====
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{array}
+
+% ===== 图片 =====
+\usepackage{graphicx}
+\usepackage{subcaption}  % 提供 subfigure 环境（并排图），替代已废弃且与 caption 冲突的 subfigure 宏包
+
+% ===== 算法 =====
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+% ===== 代码框 =====
+% [most] 选项已自带 listings 与 xcolor 支持，无需额外引入
+\usepackage[most]{tcolorbox}
+
+% 可跨页的代码框
+\newtcblisting{codebox}[1][]{%
+  listing only,
+  colback=gray!5,
+  colframe=black!70,
+  fontupper=\scriptsize\ttfamily,
+  boxrule=0.8pt,
+  arc=2pt,
+  left=4pt, right=4pt, top=2pt, bottom=2pt,
+  breakable,
+  #1
+}
+
+% ===== 超链接 =====
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+% ===== 标题设置 =====
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% ===== 参考文献 =====
+\usepackage[numbers]{natbib}
+
+% ===== 其他 =====
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf}
+
+\title{\textbf{论文标题}}
+\author{作者姓名 \\ 学校名称}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+% ===== 摘要 =====
+\begin{abstract}
+\noindent
+这里是摘要内容。开头段用 2-3 句话概括选题背景与核心研究目标。
+
+针对问题一，本文采用...方法，解决了...问题，得到...结果。
+
+针对问题二，本文采用...方法，解决了...问题，得到...结果。
+
+针对问题三，本文采用...方法，解决了...问题，得到...结果。
+
+本文的核心贡献在于...。
+
+\textbf{关键词：}关键词1；关键词2；关键词3；关键词4
+\label{abstract:end}
+\end{abstract}
+
+% 摘要单独占一页（编译后验证 abstract:end 页码=1）；正文章节之间不再人为断页
+\newpage
+
+% ===== 一、问题重述 =====
+\section{问题重述}
+
+\subsection{问题背景}
+% 选题的现实意义，学术化语言改写
+
+\subsection{核心子问题}
+% 按赛题顺序提炼具体任务
+
+% ===== 二、问题分析 =====
+\section{问题分析}
+
+\subsection{问题一分析}
+% 相关条件 → 整体分析 → 初步方法
+% 思维流程图引用
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{figures/problem1/flow.pdf}
+  \caption{问题一分析思路流程图}
+  \label{fig:flow1}
+\end{figure}
+
+\subsection{问题二分析}
+% 同上
+
+\subsection{问题三分析}
+% 同上
+
+% ===== 三、模型假设 =====
+\section{模型假设}
+
+为简化问题，本文做出以下假设：
+
+\begin{itemize}
+  \item \textbf{假设1：}题目明确给出的假设条件……
+  \item \textbf{假设2：}排除小概率事件……
+  \item \textbf{假设3：}仅考虑核心因素，忽略次要因素……
+  \item \textbf{假设4：}模型本身要求的假设……
+  \item \textbf{假设5：}对参数形式/分布的假设……
+  \item \textbf{假设6：}用于简化的假设……
+\end{itemize}
+
+% ===== 四、符号说明 =====
+\section{符号说明}
+
+% 全论文表格统一 longtable + p{}，列宽比例总和 = 1.04 - 0.04×N（此处 3 列 = 0.92）
+% 列序与 writing-standards.md §7 一致：符号 | 说明 | 单位
+\begin{longtable}{>{\centering\arraybackslash}p{0.16\textwidth}>{\centering\arraybackslash}p{0.60\textwidth}>{\centering\arraybackslash}p{0.16\textwidth}}
+  \caption{符号说明}
+  \label{tab:symbols} \\
+  \toprule
+  符号 & 说明 & 单位 \\
+  \midrule
+  \endfirsthead
+  \caption{符号说明（续）} \\
+  \toprule
+  符号 & 说明 & 单位 \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  $X_1$ & 第 1 区域日客流量 & 人 \\
+  $T$ & 时间周期 & 小时 \\
+  $\alpha$ & 学习率 & --- \\
+\end{longtable}
+
+% ===== 五、模型建立与求解 =====
+\section{模型的建立与求解}
+
+\subsection{问题一模型建立}
+% 将实际问题抽象为数学表达式
+% 核心公式居中展示
+\begin{equation}
+  \min_{x} f(x) = \sum_{i=1}^{n} c_i x_i
+  \label{eq:obj1}
+\end{equation}
+
+约束条件：
+\begin{equation}
+  \begin{cases}
+    \sum_{j=1}^{m} a_{ij} x_j \geq b_i, & i = 1, 2, \ldots, p \\
+    x_j \geq 0, & j = 1, 2, \ldots, n
+  \end{cases}
+  \label{eq:cons1}
+\end{equation}
+
+% 公式解释文字
+
+\subsection{问题一模型求解}
+% 软件选择及理由
+% 计算步骤
+% 结果呈现
+
+\begin{longtable}{>{\centering\arraybackslash}p{0.30\textwidth}>{\centering\arraybackslash}p{0.31\textwidth}>{\centering\arraybackslash}p{0.31\textwidth}}
+  \caption{问题一求解结果}
+  \label{tab:result1} \\
+  \toprule
+  方案 & 目标函数值 & 优化率 \\
+  \midrule
+  \endfirsthead
+  \caption{问题一求解结果（续）} \\
+  \toprule
+  方案 & 目标函数值 & 优化率 \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  方案A & 1234.56 & --- \\
+  方案B & 1089.23 & 11.8\% \\
+\end{longtable}
+
+\subsection{问题二模型建立}
+% ...
+
+\subsection{问题二模型求解}
+% ...
+
+% ===== 六、模型分析与检验 =====
+\section{模型的分析与检验}
+
+\subsection{灵敏度分析}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/sensitivity.png}
+  \caption{灵敏度分析结果}
+  \label{fig:sensitivity}
+\end{figure}
+
+\subsection{误差分析}
+
+\subsection{模型检验}
+
+% ===== 七、模型评价、改进与推广 =====
+\section{模型的评价、改进与推广}
+
+\subsection{模型优点}
+\begin{itemize}
+  \item \textbf{优点1：}……
+  \item \textbf{优点2：}……
+  \item \textbf{优点3：}……
+  \item \textbf{优点4：}……
+\end{itemize}
+
+\subsection{模型缺点}
+\begin{itemize}
+  \item \textbf{缺点1：}……
+  \item \textbf{缺点2：}……
+\end{itemize}
+
+\subsection{模型改进}
+% 针对缺点的可落地方案
+
+\subsection{模型推广}
+% 扩展至类似问题
+
+% ===== 参考文献 =====
+\begin{thebibliography}{99}
+  \bibitem{ref1} 作者. 文献标题[J]. 期刊名, 年份, 卷(期): 页码.
+  \bibitem{ref2} 作者. 书名[M]. 出版地: 出版社, 年份.
+\end{thebibliography}
+
+% ===== 附录 =====
+% 用 \appendix 命令（不是环境）切换到附录模式，其后 \section 自动编号为 A、B、C…
+\appendix
+
+\section{附件清单}
+
+\begin{longtable}{>{\centering\arraybackslash}p{0.10\textwidth}>{\centering\arraybackslash}p{0.25\textwidth}>{\centering\arraybackslash}p{0.60\textwidth}}
+  \caption{附件清单}
+  \label{tab:appendix} \\
+  \toprule
+  编号 & 文件名 & 说明 \\
+  \midrule
+  \endfirsthead
+  \caption{附件清单（续）} \\
+  \toprule
+  编号 & 文件名 & 说明 \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  % 根据赛题实际附件信息填写，代码文件格式可能为 .m / .py 等
+  附件1 & xxx.xlsx & 题目给定的数据文件 \\
+  附件2 & xxx.py / xxx.m & 代码主程序 \\
+  附件3 & xxx.xlsx & 计算结果或中间数据 \\
+\end{longtable}
+
+\end{document}
