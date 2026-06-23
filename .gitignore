@@ -1,0 +1,11 @@
+# Python 缓存与编译产物
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 运行期自进化日记（自评 fail 时生成，属本机私有复盘，不入库）
+diary/
+
+# 操作系统
+.DS_Store
+Thumbs.db

@@ -4,16 +4,25 @@
 \usepackage[UTF8]{ctex}
 
 % ===== 页面设置 =====
-\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=3cm]{geometry}
+% 全文版心边距统一：上下左右均 2.5cm
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
 \usepackage{setspace}
 \onehalfspacing
+% 标题块紧凑化：去掉 \maketitle 默认顶部留白，使首页正文起始线与后续页一致
+\usepackage{titling}
+\setlength{\droptitle}{-2em}
 
 % ===== 数学环境 =====
 \usepackage{amsmath, amssymb, amsfonts}
 \usepackage{bm}
+\usepackage{dsfont}  % 示性/指示函数用 \mathds{1}（空心 1）；\mathbb 仅对大写字母有定义，\mathbb{1} 会静默回退成错误字形
 
 % ===== 表格 =====
 \usepackage{booktabs}
+% 三线表线宽统一：上下边线(\toprule/\bottomrule)加粗 1.5pt，栏目线/辅助线(\midrule/\cmidrule)不加粗 0.5pt
+\setlength{\heavyrulewidth}{1.5pt}
+\setlength{\lightrulewidth}{0.5pt}
+\setlength{\cmidrulewidth}{0.5pt}
 \usepackage{longtable}
 \usepackage{multirow}
 \usepackage{array}
@@ -44,6 +53,22 @@
   #1
 }
 
+% 从文件读入代码（附录用，保持与 src/ 一致）；附录代码一律用本宏，禁止裸 \lstinputlisting
+\newtcbinputlisting{\codefile}[2]{%
+  listing only,
+  listing file={#2},
+  title={\texttt{#1}},
+  colback=gray!5,
+  colframe=black!70,
+  fontupper=\scriptsize\ttfamily,
+  listing options={basicstyle=\scriptsize\ttfamily, breaklines=true,
+    breakatwhitespace=false, columns=fullflexible, extendedchars=true,
+    showstringspaces=false, keepspaces=true, tabsize=2},
+  boxrule=0.8pt, arc=2pt,
+  left=4pt, right=4pt, top=2pt, bottom=2pt,
+  breakable,
+}
+
 % ===== 超链接 =====
 \usepackage{hyperref}
 \hypersetup{
@@ -54,10 +79,14 @@
 }
 
 % ===== 标题设置 =====
+% 仅章节标题保留加粗（正文一律不加粗，见 writing-standards §1）；三级标题加粗+斜体区分层次
 \usepackage{titlesec}
 \titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
 \titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
-\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}  % 仅加粗，禁用 \itshape（中文斜体观感差，用户禁止斜体做标题）
+% 标题段前/段后间距：{左缩进}{段前}{段后}
+\titlespacing*{\subsection}{0pt}{3pt}{0pt}        % 二级标题：段前 3pt、段后 0
+\titlespacing*{\subsubsection}{0pt}{6pt}{3pt}     % 三级标题：段前 6pt、段后 3pt
 
 % ===== 参考文献 =====
 \usepackage[numbers]{natbib}
@@ -66,9 +95,9 @@
 \usepackage{enumitem}
 \usepackage{float}
 \usepackage{caption}
-\captionsetup{font=small, labelfont=bf}
+\captionsetup{font=small}   % 图表题号不加粗
 
-\title{\textbf{论文标题}}
+\title{论文标题}
 \author{作者姓名 \\ 学校名称}
 \date{\today}
 
@@ -77,9 +106,12 @@
 \maketitle
 
 % ===== 摘要 =====
-\begin{abstract}
-\noindent
-这里是摘要内容。开头段用 2-3 句话概括选题背景与核心研究目标。
+% 不用 \begin{abstract} 环境：article 的 abstract = \small + quotation（双侧缩进），
+% 会使摘要页字号更小、左右边距比正文宽，与正文页观感不一致。改为自定义等宽等字号块。
+\begin{center}{\Large 摘要}\end{center}
+\vspace{0.5em}
+
+\noindent 这里是摘要内容。开头段用 2-3 句话概括选题背景与核心研究目标。
 
 针对问题一，本文采用...方法，解决了...问题，得到...结果。
 
@@ -89,15 +121,16 @@
 
 本文的核心贡献在于...。
 
-\textbf{关键词：}关键词1；关键词2；关键词3；关键词4
+\vspace{0.5em}
+\noindent 关键词：关键词1；关键词2；关键词3；关键词4
 \label{abstract:end}
-\end{abstract}
 
 % 摘要单独占一页（编译后验证 abstract:end 页码=1）；正文章节之间不再人为断页
 \newpage
 
 % ===== 一、问题重述 =====
 \section{问题重述}
+\label{sec:bodystart}  % 正文起始锚点（页数测量用：正文页数 = page(sec:refstart) - page(sec:bodystart)）
 
 \subsection{问题背景}
 % 选题的现实意义，学术化语言改写
@@ -130,12 +163,12 @@
 为简化问题，本文做出以下假设：
 
 \begin{itemize}
-  \item \textbf{假设1：}题目明确给出的假设条件……
-  \item \textbf{假设2：}排除小概率事件……
-  \item \textbf{假设3：}仅考虑核心因素，忽略次要因素……
-  \item \textbf{假设4：}模型本身要求的假设……
-  \item \textbf{假设5：}对参数形式/分布的假设……
-  \item \textbf{假设6：}用于简化的假设……
+  \item 假设1：题目明确给出的假设条件……
+  \item 假设2：排除小概率事件……
+  \item 假设3：仅考虑核心因素，忽略次要因素……
+  \item 假设4：模型本身要求的假设……
+  \item 假设5：对参数形式/分布的假设……
+  \item 假设6：用于简化的假设……
 \end{itemize}
 
 % ===== 四、符号说明 =====
@@ -234,16 +267,16 @@
 
 \subsection{模型优点}
 \begin{itemize}
-  \item \textbf{优点1：}……
-  \item \textbf{优点2：}……
-  \item \textbf{优点3：}……
-  \item \textbf{优点4：}……
+  \item 优点1：……
+  \item 优点2：……
+  \item 优点3：……
+  \item 优点4：……
 \end{itemize}
 
 \subsection{模型缺点}
 \begin{itemize}
-  \item \textbf{缺点1：}……
-  \item \textbf{缺点2：}……
+  \item 缺点1：……
+  \item 缺点2：……
 \end{itemize}
 
 \subsection{模型改进}
@@ -253,6 +286,7 @@
 % 扩展至类似问题
 
 % ===== 参考文献 =====
+\phantomsection\label{sec:refstart}  % 正文结束锚点（参考文献起始页，不计入正文页数）
 \begin{thebibliography}{99}
   \bibitem{ref1} 作者. 文献标题[J]. 期刊名, 年份, 卷(期): 页码.
   \bibitem{ref2} 作者. 书名[M]. 出版地: 出版社, 年份.
@@ -283,5 +317,18 @@
   附件2 & xxx.py / xxx.m & 代码主程序 \\
   附件3 & xxx.xlsx & 计算结果或中间数据 \\
 \end{longtable}
+
+\section{核心求解代码}
+
+% 附录代码一律用 \codefile（基于 tcolorbox），从 src/ 直接读入，保证与实际代码一致；
+% 顺序：common_utils 第一框，其后按问题编号 solve_problemN。
+% 禁止用裸 \lstinputlisting（中文注释易乱码、与 codebox 风格不一）。
+\codefile{common\_utils.py --- 公共工具函数}{../src/common_utils.py}
+
+\codefile{solve\_problem1.py --- 问题一求解}{../src/solve_problem1.py}
+
+\codefile{solve\_problem2.py --- 问题二求解}{../src/solve_problem2.py}
+
+\codefile{solve\_problem3.py --- 问题三求解}{../src/solve_problem3.py}
 
 \end{document}
