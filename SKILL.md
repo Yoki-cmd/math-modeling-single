@@ -67,7 +67,7 @@ dependencies:
 | **LaTeX 编译器** | 检查 `xelatex` 是否在 PATH（`command -v xelatex`） | 在 → `COMPILER=xelatex`；不在 → 向用户报错并请其安装 TeX 发行版（TeX Live / MiKTeX） |
 | poppler（pdffonts/pdftotext/pdftoppm） | 检查是否在 PATH | 缺失则阶段 D 版式 Layer1/2 降级（mutool/magick 兜底） |
 | 自身视觉能力 | **默认 `VISION_OK=true`**（当前主流模型 Opus/Sonnet 均可读图），仅当用户显式声明所用模型无视觉时置 false | true → 阶段 D 跑 Layer3 逐页视觉；false → 跳过 Layer3、改用 Layer1/2 确定性检测并收紧阈值 |
-| **ML 包预检（硬门禁）**（阶段 A methods.md 定稿后、进阶段 B 前） | 按求解器映射 **一次性** `python -c "import xgboost, sklearn, lightgbm, statsmodels, pyarrow, ..."` 预检**全部拟用第三方库**（含 parquet 所需 pyarrow） | 缺失即一次性 `pip install` 补齐，**避免求解中途 `ModuleNotFoundError` 中断重跑**；阶段 B 启动前必须在 solve_data 写入"ML 依赖预检通过"一行。**未记录该行则阶段 B 不得开始**（硬门禁）。算法选型默认优先 sklearn 自带实现以最小化安装面，见 B.3 |
+| **ML 包预检（硬门禁）**（阶段 A methods.md 定稿后、进阶段 B 前） | 按求解器映射 **一次性** `python -c "import xgboost, sklearn, lightgbm, statsmodels, pyarrow, ..."` 预检**全部拟用第三方库**（含 parquet 所需 pyarrow） | 缺失即一次性 `pip install` 补齐，**避免求解中途 `ModuleNotFoundError` 中断重跑**；阶段 B 启动前必须在 solve_data.md 写入"ML 依赖预检通过"一行（**solve_data.md 此刻即按 B.5 骨架建好**，见阶段 B 开头「solve_data.md 增量写入」）。**未记录该行则阶段 B 不得开始**（硬门禁）。算法选型默认优先 sklearn 自带实现以最小化安装面，见 B.3 |
 | **CUDA GPU**（廉价，跑一次；仅 `ext=py` 时有意义） | `nvidia-smi` 是否在 PATH 且返回 0；再确认拟用库的 GPU 支持（XGBoost ≥2.0 用 `device="cuda"`，旧版 `tree_method="gpu_hist"`；LightGBM `device="gpu"`） | 通 → `CUDA_OK=true`；不通 → `CUDA_OK=false`（**静默回退 CPU，不报错、不阻塞**）。仅在 `ext=py` 求解路径生效；MATLAB 路径不引入 gpuArray |
 
 **页数区间探测**：正文页数是**区间约束 `[PAGE_MIN, PAGE_MAX]`**（详见 `writing-standards.md`「正文页数预算」节）。
@@ -187,6 +187,8 @@ dependencies:
 
 执行顺序（每完成一个子任务立即 Write 文件并即时验证，不要攒到最后）：
 
+> **solve_data.md 增量写入（强制·先建骨架再全程追加，治"门禁要求写入但 B.5 才创建"的顺序矛盾）**：solve_data.md **不是 B.5 才首次创建**——在**第一次需要写门禁行时即用 B.5 骨架建好文件**：即阶段零"ML 依赖预检通过"那一刻（尚未进 B）就建骨架并写入该行；其后"问题N 冒烟已通过"（B.4.0）、各问求解结果均**随产随追加**到同一文件；B.5 只是最终汇总补全，**非首次创建**。如此两个硬门禁（ML 预检 / 冒烟）的记录行才能在 B 开始前、B.4 进行中就真实落盘并被 grep 验证。
+
 > **🚦 阶段 B 启动留痕（强制·治"规则在 SKILL.md 但编码时被惯性跳过"）**：进入 B.4 逐问求解**前**，必须在对话中显式输出一行确认：「已对照 model-methods.md『编码防错速查』；大数据题已为每个 solve 脚本预留 `SMOKE=1` 冒烟分支；已知 PostToolUse hook 会自动拦截 `iterrows`/`apply(axis=1)`」。**未留此痕不得开始 B.4**。背景：软规则（向量化、冒烟）若仅靠每次主动对照，赶进度时会被无意识跳过——本留痕把"对照动作"本身变成必须执行的步骤，与下方 B.4「大表禁 iterrows」的 PostToolUse 机器强制（见本 skill 自带的 `hooks/check_pandas_antipattern.py`，需按文末「可选：启用机器强制 hook」注册后生效；未注册时本留痕 + 审查 grep 仍兜底）形成"留痕+机器拦截"双保险。
 
 > **图表归属与互斥清单（强制 · 防重复/防漏）**：本阶段产两类图，**职责互斥、不得交叉**——
@@ -206,6 +208,7 @@ dependencies:
 - **方向必须横式 `flowchart LR`**（禁默认竖式 TD）；节点文字**全中文、简洁**；技术缩写按白名单保留（R²/RMSE/AUC/GAM/XGBoost/PCA 等）。
 - mermaid 源码首行（多字体 fallback，跨平台防缺字）：`%%{init: {'themeVariables': {'fontFamily': 'Microsoft YaHei, Noto Sans CJK SC, SimHei, sans-serif'}}}%%`
 - 尝试：①mermaid-cli（`npx -y @mermaid-js/mermaid-cli -i flow.mmd -o flow.pdf --pdfFit`，输出后缀决定格式，`--pdfFit` 裁白边，中文由内部 Chrome 渲染）②Python 兜底同样产矢量 PDF（graphviz `-Tpdf` 或 matplotlib `savefig('....pdf')`）。
+- **渲染必须串行，禁止并行批量发（强制·治"流程图看似一直重复渲染"）**：多张流程图（roadmap + 各问 flow）的 mermaid-cli/兜底命令**一次只发一个 Bash 调用，逐个串行执行**，**绝不在同一条消息里并行发多个渲染命令**。背景：并行多个 Bash 时，若 Bash 安全分类器临时不可用（返回 `temporarily unavailable`/无法判定安全性），并发调用中只有个别能通过、其余被授权层挡下并返回错误——这是**授权被挡、不是命令失败**，极易被误判为"没生成"而重试同样的命令，表现为"流程图一直在重复渲染"。串行执行可规避该并发授权失败。**每渲染完一个用 Glob（只读、不经分类器）核对 `figures/**/*.pdf` 确认产物再渲下一个**，不靠重发命令确认。
 - 两种都失败 → `generated=false`，**不强行生成**，后续写作严禁引用。
 - **生成后自检**：Read .mmd，节点文字若出现白名单外连续 ASCII 英文 → 改中文后重渲。
 - **另出 1 张全局技术路线图** `<output_dir>/figures/roadmap.pdf`（同样横式矢量 PDF）：串联「数据/题面 → 各子问题模型 → 求解 → 检验 → 结论」，全中文节点；失败则不引用。在 solve_data 流程图清单里作 id=0 记录。
@@ -284,6 +287,7 @@ dependencies:
   - Python 模式：`grep -rnE "print\(\s*[A-Za-z_]*[Dd]f\s*\)|\.describe\(\)|print\(.*\.values\)" <output_dir>/src/ || echo CLEAN`；命中则改只打印 shape/关键指标/前 3 行或写 CSV。
 
 **执行安全约束（强制·防卡死）**：
+- **副作用类 Bash 命令串行发 + Glob 核对产物（强制·治"分类器不可用时被误判失败而重复执行"）**：渲染/编译/数据处理等**有文件产物的 Bash 命令一次只发一个、逐个串行执行**，禁止在同一条消息里并行批量发（mermaid-cli 渲染、xelatex 编译、长脚本尤其如此）。原因：并行时若 Bash 安全分类器临时不可用（`temporarily unavailable`/无法判定安全），并发调用中只个别通过、其余被授权层挡下返回错误——**这是授权被挡而非命令失败**，看似"没生成"，重试同命令就表现为"一直在重复执行"。每条副作用命令完成后**用 Glob（只读、不经分类器、不受影响）核对产物文件是否已生成**，据产物判断成败，**不靠重发命令来确认**。只读查询（Glob/Grep/Read）不受此限，可并行。
 - Bash 命令必带超时：编译每遍 ≤120000ms；mermaid-cli（含首次下载）≤300000ms；数值计算/绘图 300000~600000ms。命中超时即判失败走失败分支，绝不无限等待。
 - 编译禁止交互挂起：一律加 `-interaction=nonstopmode -halt-on-error`。
 - MATLAB MCP 无 timeout 参数：靠代码内防死循环自保；长时间无返回即视为卡死，缩规模/加迭代上限后重跑。
@@ -293,7 +297,7 @@ dependencies:
 
 **C.1 自检 solve_data**：复核 solve_data.md——是否有问题 `status=failed`、common_utils 失败、或关键图表/CSV 文件不存在（用 Bash `ls`/`test -f` 验证）。
 
-**C.2 必要时补修（≤5 轮，条件执行）**：若 C.1 发现漏网失败问题，回到 src/ 修复重跑（同一问题每轮 ≤3 次重跑），并**追加更新** solve_data.md 对应条目（状态 / 图表路径 / 最后更新标记 `Coder-fix-N`）；5 轮后仍有问题则据实保留 `failed`、强制进入 C.3。所有问题 `success`（含"修复N次后成功"）且文件存在则跳过本步。
+**C.2 必要时补修（≤5 轮，条件执行）**：若 C.1 发现漏网失败问题，回到 src/ 修复重跑（同一问题每轮 ≤3 次重跑；**此 C.2 补修预算与阶段 B「单问 ≤4 次」相互独立、不叠加计数**——B 是首轮求解硬上限，C.2 是写作前对漏网 `failed` 问题的补救轮次），并**追加更新** solve_data.md 对应条目（状态 / 图表路径 / 最后更新标记 `Coder-fix-N`）；5 轮后仍有问题则据实保留 `failed`、强制进入 C.3。所有问题 `success`（含"修复N次后成功"）且文件存在则跳过本步。
 
 **C.3 写完整论文**（动笔前必须先 Read 这些文件）：
 1. `<output_dir>/data/methods.md`（定稿方法/全局符号表/求解器映射/统一假设/创新点/forced）
@@ -325,7 +329,7 @@ dependencies:
    - `sections/evaluation.tex` 评价/改进/推广：优点4条+缺点2条（itemize）；改进给具体升级路径；**若 methods.md 含方法对比记录则一句话简述"曾考虑 X 但因 Y 选 Z"（无对比图/代码）；无记录则跳过，不编造**。
 2. **各问"模型建立与求解"章节** `sections/model_problemN.tex`：①模型建立（数学表达）②模型求解（步骤/结果 longtable/解读；**结果表、符号表等数据驱动的表优先用 `references/make_table.py` 的 `make_longtable(df, caption, label)` 从 CSV 生成合规 longtable 代码再粘入**——居中/比例满宽/单底线一次到位，见 writing-standards §9 三铁律）③图表嵌入（3-5 张核心图，来自 solve_data figures，只引用实际存在的图，图用 `[H]` 紧贴，相邻同问图 subfigure 并排）。**无解法对比子节**。
 3. **参考文献** `sections/references.tex`：Grep 扫 `sections/*.tex` 全部 `\cite{}` 键 → 逐一生成真实可检索文献（thebibliography 环境）。**禁伪造/翻译/音译**。8-15 条，GB/T 7714-2015，`\cite`↔`\bibitem` 双向一一对应。
-4. **组装主文件 `main.tex`**：①Read 比赛模板（在其基础上填充，不覆盖模板格式）②Read writing-standards（附录 codebox 定义见第11节；导言区补 `\usepackage{float}` + `\usepackage{subcaption}`）③`\input{sections/xxx}` 引入全部章节 ④附录：Read src/ 下全部源代码，按 common_utils→solve_problemN（按编号）放入 codebox（完整代码非伪代码，下划线/反斜杠需转义）⑤`\graphicspath{{../figures/}}`；正文章节间不加 `\newpage`。
+4. **组装主文件 `main.tex`**：①Read 比赛模板（在其基础上填充，不覆盖模板格式）②Read writing-standards（附录 codebox 定义见第11节；导言区补 `\usepackage{float}` + `\usepackage{subcaption}`）③`\input{sections/xxx}` 引入全部章节 ④附录：Read src/ 下全部源代码，按 common_utils→solve_problemN（按编号）放入 codebox（完整代码非伪代码，下划线/反斜杠需转义）⑤`\graphicspath{{../figures/}}`；正文章节间不加 `\newpage`。⑥**页数测量锚点（外部模板必查）**：确认正文首章（问题重述）`\section` 后有 `\label{sec:bodystart}`、参考文献起始处有 `\phantomsection\label{sec:refstart}`——回退模板已内置；**用外部模板时若缺，必须补插这两个锚点**，否则 D.1⑥/D.5 正文页数门禁因 label undefined 静默失效（页码取不到 → 测量恒为空/报错被当作"无需处理"）。
 5. **编译修复循环**（在 `<output_dir>/paper/` 下）：执行 `COMPILER main.tex` 两遍 → 解析 .log，有 Error 定位修复重编（最多 5 轮）→ **三线表 lint**（`python <skill>/references/check_tables.py sections`，有 HIGH 即修表重编）→ 摘要1页验证（`grep abstract:end main.aux`，>1 则按比例缩字重编）→ 正文页数检查（落在 `[PAGE_MIN, PAGE_MAX]`，默认 25–30；超上限按 writing-standards「正文页数预算」压缩，低于下限按规范扩充且禁灌水）→ 确认 main.pdf 生成。
 
 ### 阶段 D：论文审查（七维审查 + 直接修改 + 终验编译 + 版式验收 + 自评）
@@ -338,8 +342,8 @@ dependencies:
 **D.1 七维全盘审查（先只读列全 issues，再逐条修——绝不边审边漏）**，Read `references/writing-standards.md` 作基准：
 
 > **审查不得空过（强制·治"规则在但模型跳过"）**：每个带 grep/Glob 检测点的维度**必须真实执行命令并输出实测结果与判定**（如"加粗命中 0 处✓""孤图：生成12引用12，0孤图✓""正文 24 页 < 下限25，需扩充✗"），**禁止不跑命令就声称通过**。凡能机器验证的项（加粗/公式/孤图/页数/完美指标/abstract环境/lstinputlisting），未给出实测结果的一律视为未通过。这是不同模型（尤其较弱模型）可靠复现的根本——护栏必须机器可验证、不可跳过。
-- **维度1 格式**：①正文出现 itemize/enumerate（仅允许在假设/评价）②**任何加粗**：`grep -rnE '\\textbf|\\bfseries' sections/*.tex` 命中即违规（正文一律不加粗，标题加粗只在 main.tex 预导言 `\titleformat`，章节文件内不得手写）②b**任何斜体**：`grep -rnE '\\emph|\\textit|\\itshape|\\slshape' sections/*.tex` 命中即违规（全文禁斜体，含用 `\emph` 当小标题/强调），并核 main.tex 的 `\titleformat{\subsubsection}` 不含 `\itshape`/`\slshape`（回退模板三级标题已改 `\normalsize\bfseries`）——需强调改措辞、需小标题用 `\subsubsection`（writing-standards §1）②c**示性函数错字形**：`grep -rnE '\\mathbb\{[0-9]\}' sections/*.tex` 命中即违规（`\mathbb` 仅对大写字母有字形，`\mathbb{1}` 静默回退成破碎字符且不报编译错误），改 `\mathds{1}` 并核 main.tex 导言区有 `\usepackage{dsfont}`（writing-standards §1a）③正文章节间有 `\newpage` ④**三线表 lint（可执行·必跑，不得空过）**：在 `paper/` 下 `python ../references/check_tables.py sections`（或绝对路径指向 skill 的 `references/check_tables.py`），输出实测违规清单——H1 裸列未居中（应 `>{\centering\arraybackslash}p{}`）/ H2 绝对单位定宽（cm/pt，应 `比例\textwidth`）/ H3 比例总和≠1.04-0.04N（不满宽）/ H4 缺三线 / M1 双底线（表末重复 `\bottomrule`）/ M2 头尾不全；**有 HIGH（退出码≠0）即违规必修重编**。并核预导言已设 `\heavyrulewidth=1.5pt`/`\lightrulewidth=0.5pt` ⑤图宽异常/caption 非中文 ⑥重复定义符号（grep "其中 $..$ 为/表示"句式）⑦**公式无编号/无编号环境**：`grep -rnF -e '\[' -e '$$' -e '\begin{equation*}' -e '\begin{align*}' -e '\begin{gather*}' sections/*.tex` 命中即违规（行间式一律 `equation`/`align` 居中自动编号；用 fixed-string 避免 grep 转义坑）⑧边距：main.tex geometry 四向均 2.5cm；二级标题 `\titlespacing*{\subsection}{0pt}{3pt}{0pt}`、三级标题 `{0pt}{6pt}{3pt}` ⑨**摘要禁用 abstract 环境**：`grep -n 'begin{abstract}' sections/abstract.tex` 命中即违规（abstract 环境的 quotation 缩进+\small 致摘要页边距/字号异于正文，须改自定义等宽块，见 writing-standards §2）⑩main.tex 章节注释**不写中文序号**（如 `% 四、模型假设`）——序号由 `\section` 自动编号，手写序号易与实际错位。
-- **维度2 数据一致性**：①同一变量在摘要/正文/表格数值一致 ②与 `data/results_problemN.csv` 逐一核对 ③精度2-4位小数 ④无凭空数值 ⑤**🔴 完美指标=数据泄露红灯（critical）**：`grep -nE 'AUC[^0-9]*(1\.0|0\.99)|F1[^0-9]*(1\.0|0\.99)|R.?2?[^0-9]*(1\.0|0\.99)|=\s*1\.000' solve_data.md` 命中 → **强制触发泄露复核**：（a）`grep` 对应 solve 脚本，核对标签列是否同时出现在特征列表里，命中则要求 solve_data 给出书面归因（真实共线 vs 任务过易 vs 泄露，见 B.4「指标合理性自检」），无归因按泄露处理；（b）按 writing-standards §13「完美指标即红灯」处理：能消除则改严格滞后特征重训，不能消除则正文+摘要显式声明局限+保守措辞，**严禁当亮点宣传**。⑥**（数据型题）防泄露三件套落档检查**：`grep -nE '样本单元|防泄露|候选集' data/methods.md`——监督学习子问题缺失这三类关键段落即判 issue（A.5b 未落地），回阶段 A 补齐。
+- **维度1 格式**：①正文出现 itemize/enumerate（仅允许在假设/评价）②**任何加粗**：`grep -rnE '\\textbf|\\bfseries' sections/*.tex` 命中即违规（正文一律不加粗，标题加粗只在 main.tex 预导言 `\titleformat`，章节文件内不得手写）②b**任何斜体**：`grep -rnE '\\emph|\\textit|\\itshape|\\slshape' sections/*.tex` 命中即违规（全文禁斜体，含用 `\emph` 当小标题/强调），并核 main.tex 的 `\titleformat{\subsubsection}` 不含 `\itshape`/`\slshape`（回退模板三级标题已改 `\normalsize\bfseries`）——需强调改措辞、需小标题用 `\subsubsection`（writing-standards §1）②c**示性函数错字形**：`grep -rnE '\\mathbb\{[0-9]\}' sections/*.tex` 命中即违规（`\mathbb` 仅对大写字母有字形，`\mathbb{1}` 静默回退成破碎字符且不报编译错误），改 `\mathds{1}` 并核 main.tex 导言区有 `\usepackage{dsfont}`（writing-standards §1a）③正文章节间有 `\newpage` ④**三线表 lint（可执行·必跑，不得空过）**：在 `paper/` 下 `python <skill>/references/check_tables.py sections`（`<skill>`=本 skill 安装目录绝对路径，如 `~/.claude/skills/math-modeling-single`；**勿用 `../references/`——`paper/` 的上级是 `<output_dir>`，那里没有 references**），输出实测违规清单——H1 裸列未居中（应 `>{\centering\arraybackslash}p{}`）/ H2 绝对单位定宽（cm/pt，应 `比例\textwidth`）/ H3 比例总和≠1.04-0.04N（不满宽）/ H4 缺三线 / M1 双底线（表末重复 `\bottomrule`）/ M2 头尾不全；**有 HIGH（退出码≠0）即违规必修重编**。并核预导言已设 `\heavyrulewidth=1.5pt`/`\lightrulewidth=0.5pt` ⑤图宽异常/caption 非中文 ⑥重复定义符号（grep "其中 $..$ 为/表示"句式）⑦**公式无编号/无编号环境**：`grep -rnF -e '\[' -e '$$' -e '\begin{equation*}' -e '\begin{align*}' -e '\begin{gather*}' sections/*.tex` 命中即违规（行间式一律 `equation`/`align` 居中自动编号；用 fixed-string 避免 grep 转义坑）⑧边距：main.tex geometry 四向均 2.5cm；二级标题 `\titlespacing*{\subsection}{0pt}{3pt}{0pt}`、三级标题 `{0pt}{6pt}{3pt}` ⑨**摘要禁用 abstract 环境**：`grep -n 'begin{abstract}' sections/abstract.tex` 命中即违规（abstract 环境的 quotation 缩进+\small 致摘要页边距/字号异于正文，须改自定义等宽块，见 writing-standards §2）⑩main.tex 章节注释**不写中文序号**（如 `% 四、模型假设`）——序号由 `\section` 自动编号，手写序号易与实际错位。
+- **维度2 数据一致性**：①同一变量在摘要/正文/表格数值一致 ②与 `data/results_problemN.csv` 逐一核对 ③精度2-4位小数 ④无凭空数值 ⑤**🔴 完美指标=数据泄露红灯（critical）**：`grep -nE '(AUC|F1|R.?2|R²|Acc(uracy)?)\s*[=:]?\s*(0\.99|1\.0{1,3})|=\s*1\.000' solve_data.md`（指标 token 后仅许空白/等号冒号即接 0.99~1.0，避免 `[^0-9]*` 跨任意字符的误报）命中 → **强制触发泄露复核**：（a）`grep` 对应 solve 脚本，核对标签列是否同时出现在特征列表里，命中则要求 solve_data 给出书面归因（真实共线 vs 任务过易 vs 泄露，见 B.4「指标合理性自检」），无归因按泄露处理；（b）按 writing-standards §13「完美指标即红灯」处理：能消除则改严格滞后特征重训，不能消除则正文+摘要显式声明局限+保守措辞，**严禁当亮点宣传**。⑥**（数据型题）防泄露三件套落档检查**：`grep -nE '样本单元|防泄露|候选集' data/methods.md`——监督学习子问题缺失这三类关键段落即判 issue（A.5b 未落地），回阶段 A 补齐。
 - **维度3 引用完整性（孤图为必过门禁，不得空过）**：①Glob `figures/**/*.png` 与全部 `\includegraphics` 双向核对——**必须输出"生成 N 张/引用 M 张/孤图列表"实测结果**：孤图有叙事价值→补嵌入，无价值→删除，**孤图数必须归零** ②同一图跨章重复→保留一处其余改 `\ref` ③引用不存在文件（critical）④每个 longtable 有 caption+label 且被引用 ⑤`\ref`/`\cite` 无 undefined。
 - **维度4 附录完整性**：①导言区有 `\usepackage[most]{tcolorbox}`+`\newtcblisting{codebox}`（+从文件读入用 `\newtcbinputlisting{\codefile}`）②Glob src/ 全部源文件逐一核对附录 codebox（common_utils 第一框，solve_problemN 按编号）③代码框标题格式正确、下划线已转义 ④附录代码与 src/ 实际内容一致（抽查首尾）⑤**禁用裸 listings**：`grep -n 'lstinputlisting' main.tex` 命中即违规（中文注释易乱码、风格不一），改用 `\codefile`/`codebox`；若 `\usepackage{listings}` 未被 codebox 以外使用则删除冗余包。
 - **维度5 参考文献**：①`\bibitem`↔`\cite` 双向一一对应 ②条目数 8-15 ③真实可检索（音译中文伪造=critical）④GB/T 7714-2015 ⑤标签=作者姓氏+年份+关键词。
@@ -348,7 +352,7 @@ dependencies:
 
 **D.2 直接修改**：先备份 `cp -r "<output_dir>/paper" "<output_dir>/paper_backup"`（先 `rm -rf` 旧备份）。按 critical→high→medium 逐条直接 Edit 修改；数值以 CSV 为准；修完重新自查确认无 critical 残留。
 
-**D.3 终验编译（最多 2 轮修复，超出输出 fail 终止）**：执行 `COMPILER main.tex ×2`。0 Error 且 abstract:end=1、正文页数落在 `[PAGE_MIN, PAGE_MAX]`、PDF 生成 → `success`；失败则定位修复重编（最多 2 轮）；2 轮后仍失败 → `failed`，查 `paper/main.log`，**不强制通过**，流程终止。
+**D.3 终验编译（最多 2 轮修复，超出输出 fail 终止）**：执行 `COMPILER main.tex ×2`。**这 2 轮终止预算只针对编译类硬错**——终止门禁 = `0 Error` + `abstract:end=1` + `PDF 生成`；三者满足即 `success`，否则定位修复重编（最多 2 轮），2 轮后仍不满足 → `failed`，查 `paper/main.log`，**不强制通过**，流程终止。**正文页数落区间不计入这 2 轮编译终止预算**：页数已在 C.3 step5 用专门轮次扩/缩，此处只复测一次；若仍未落 `[PAGE_MIN, PAGE_MAX]`，回 C.3 页数调整逻辑（按 writing-standards「正文页数预算」扩/缩、禁灌水）处理，**确实调不动时记入 D.5 自评未通过项（触发 D.7 反思），而非据此终止整个流程**——把"编译错误"（终止级）与"页数微差"（质量级）分开，避免页数差一两页就把整条流程判 failed。
 
 **D.4 三层版式验收阶梯**（终验编译成功后执行）：
 - **Layer 1（编译日志+字体扫描，判定基准见 `writing-standards.md` 第14节）**：在 `paper/` 下 grep main.log 统计 `Overfull \hbox (NNpt too wide)`（记命中数与最大 NN pt）、`Overfull \vbox`/`Underfull \vbox`、`Missing character`（CJK 缺字零容忍）、`Float too large`；再 `pdffonts main.pdf` 确认 CJK 字体已嵌入（emb=yes）。判级：任一 Missing character→critical；Overfull>15pt→critical，>10pt→high。
